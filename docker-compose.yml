@@ -1,0 +1,44 @@
+services:
+  # 服务1：你的 RAG 应用
+  rag-app:
+    build: .
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # 将本地代码映射到容器，修改代码不需要重新构建镜像
+    env_file:
+      - .env
+    # 也可以手动指定
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - HF_ENDPOINT=https://hf-mirror.com        # 使用镜像站
+      - NO_PROXY=localhost,127.0.0.1,redis-server,hf-mirror.com,*.hf-mirror.com
+    depends_on:
+      - redis-server
+    stdin_open: true # 允许交互式输入 (针对你的交互测试脚本)
+    tty: true
+
+  # 服务2：Redis 数据库
+  redis-server:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    restart: always
+
+  streamlit-ui:
+    build: .
+    command: streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - API_BASE_URL=http://rag-app:8000
+    depends_on:
+      - rag-app
+
