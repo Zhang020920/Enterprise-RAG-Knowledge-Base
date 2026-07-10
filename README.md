@@ -39,10 +39,9 @@
   -> Rerank & Filter：FlashRank 重排、阈值过滤、去重、来源规则加权
   -> Reflection：判断检索质量是否足够，不足时重试
   -> Answer Generation：严格基于制度文档生成结构化答案
+```
 
-
-
-## 项目结构
+## 核心流程
 
 ```text
 .
