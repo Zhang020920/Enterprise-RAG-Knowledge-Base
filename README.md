@@ -65,16 +65,6 @@ Embedding Fine-tuning
 错召回样本 → Hard Negative → 领域优化
 ```
 
-## 项目结构
-
-```text
-.
-├── bootstrap/              # Spring Boot 启动模块
-├── framework/              # Agent、RAG 核心框架
-├── infra-ai/               # LLM、Embedding、VectorStore 等 AI 基础设施
-├── mcp-server/             # MCP 工具服务
-└── README.md
-```
 
 ## 优化方向
 
