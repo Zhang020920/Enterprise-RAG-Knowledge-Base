@@ -73,11 +73,6 @@ Embedding Fine-tuning
 ├── framework/              # Agent、RAG 核心框架
 ├── infra-ai/               # LLM、Embedding、VectorStore 等 AI 基础设施
 ├── mcp-server/             # MCP 工具服务
-├── ingestion/              # 文档解析、清洗与知识入库
-├── retrieval/              # 多路召回、RRF 融合与 Reranker
-├── evaluation/             # RAGAS 评测与错误样本分析
-├── finetune/               # Embedding 领域微调
-├── docs/                   # 风电设备知识与项目文档
 └── README.md
 ```
 
