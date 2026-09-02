@@ -1,63 +1,89 @@
-# Enterprise-RAG-Knowledge-Base
+# Wind-RAG-Agent
 
-一个面向企业制度文档的 Agentic RAG 项目。项目目标不是简单做“文档问答 Demo”，而是模拟企业员工在请假、报销、IT 权限、采购审批、预算付款、信息安全等制度场景下的真实提问，并用可评估、可复盘的工程链路提升回答准确性。
+一个面向**风电设备智能运维**场景的 Agentic RAG 知识平台。
 
-当前系统支持多格式制度文档解析、混合检索、查询改写、意图识别、重排序、检索质量控制、Redis 分层缓存、FastAPI 接口、Streamlit 页面，以及 RAGAS + 自定义指标的离线评估。
+项目针对风机设备手册、检修规程、故障案例、设备参数等知识分散，以及人工检索效率低、复杂故障定位困难等问题，构建基于 Java 的企业级 Agentic RAG 链路，支持智能路由、多路检索、故障问答、会话记忆及 MCP 工具调用。
 
+在 RAG 基础能力之上，进一步针对风电领域设备型号、部件术语和故障描述进行 Embedding 领域微调，并结合 RAGAS 建立检索与生成质量评测闭环。
 
 ## 项目亮点
 
-- 基于 `LangGraph` 搭建 `改写 -> 检索 -> 反思 -> 生成` 的 Agentic RAG 工作流。
-- 使用 `BM25 + Milvus 向量检索 + RRF 融合`，兼顾关键词命中和语义召回。
-- 加入查询意图识别与制度类型过滤，提升复杂制度场景下的检索稳定性。
-- 使用 `BGE-Reranker` 做重排序，并加入分数阈值、断崖截断、去重、来源规则加权等质量控制。
-- 支持 Redis 分层缓存，包括检索缓存、回答缓存和版本化缓存键。
-- 支持 `PDF / Word / Excel / Markdown / TXT` 等制度文档扩展，适合模拟真实企业知识库。
-- 提供复杂评估集、RAGAS 指标、自定义检索指标、分类统计和错误样本分析。
+* **Agentic RAG 智能路由**：基于树形多级意图识别动态路由知识检索与 MCP 工具调用，结合 Query Rewrite、子问题拆分和条件重试处理复杂故障问题。
+* **多路混合检索**：支持意图定向与全局检索并行召回，通过 RRF 融合候选结果，并结合 Reranker 二阶段精排提升检索质量。
+* **风电运维知识工程**：支持 `PDF / Word / Excel / Markdown` 等多格式文档解析，通过 Pipeline 完成清洗、分块、元数据增强及向量化入库。
+* **高并发与高可用治理**：基于 `Redis + Redisson` 实现分布式排队与并发控制，结合 Lua 原子操作、熔断降级和模型自动切换保障服务稳定性。
+* **领域微调与评测闭环**：基于风电领域错召回样本构造 `Query-Positive-Hard Negative` 数据，通过 LoRA/QLoRA 微调 Embedding 模型，并使用 RAGAS 持续评估优化。
 
 ## 技术栈
 
-- 工作流编排：`LangGraph`、`LangChain`
-- 大模型：`qwen-plus`，通过 OpenAI 兼容接口调用
-- 向量模型：`BGE-M3`
-- 向量库：`Milvus`
-- 关键词检索：`rank_bm25`
-- 重排序：`BGE-Reranker-v2`
-- API 服务：`FastAPI`
-- 前端演示：`Streamlit`
-- 缓存：`Redis`
-- 评估：`RAGAS`、`Pandas`
-- 部署：`Docker`、`Docker Compose`
+* 后端框架：`Java 17`、`Spring Boot`
+* 数据访问：`MyBatis-Plus`
+* 向量检索：`Milvus`
+* 关系数据库：`PostgreSQL`
+* 缓存与并发控制：`Redis`、`Redisson`
+* 消息队列：`RocketMQ`
+* 文档解析：`Apache Tika`
+* 大模型：`Qwen LLM`
+* 向量模型：`BGE Embedding`
+* 模型微调：`PEFT`、`LoRA/QLoRA`
+* RAG 评估：`RAGAS`
+* 工具协议：`MCP`
 
 ## 核心流程
 
 ```text
-用户问题
-  -> Query Rewrite：结合历史对话改写口语化问题
-  -> Intent Detection：识别请假、报销、IT、采购、预算等制度意图
-  -> Hybrid Retrieval：BM25 + 向量检索 + 多查询融合
-  -> Rerank & Filter：FlashRank 重排、阈值过滤、去重、来源规则加权
-  -> Reflection：判断检索质量是否足够，不足时重试
-  -> Answer Generation：严格基于制度文档生成结构化答案
+风电运维问题
+      │
+      ▼
+Intent Detection
+树形意图识别 / 查询词映射
+      │
+      ▼
+Query Enhancement
+Query Rewrite / 子问题拆分
+      │
+      ▼
+Hybrid Retrieval
+意图定向检索 + 全局检索
+      │
+      ▼
+RRF Fusion + Reranker
+候选融合 / 二阶段精排
+      │
+      ├──────────────► MCP Tools
+      │                 工具发现与调用
+      ▼
+Answer Generation
+基于检索上下文生成故障排查方案
+      │
+      ▼
+RAGAS Evaluation
+检索与生成质量评测
+      │
+      ▼
+Embedding Fine-tuning
+错召回样本 → Hard Negative → 领域优化
 ```
 
 ## 项目结构
+
 ```text
 .
-├── src/
-│   ├── agent/              # LangGraph 工作流、节点和状态
-│   ├── api/                # FastAPI 接口
-│   ├── cache/              # Redis 缓存
-│   ├── document/           # 文档解析、切分、元数据
-│   ├── evaluation/         # 评估指标与数据处理
-│   └── retrieval/          # 混合检索、意图识别、查询改写、重排序
-├── data/raw/               # 原始制度文档
-├── data/raw/enhanced/      # 增强版制度语料
-├── test/                   # 索引、问答、评估、消融实验脚本
-├── reports/                # 评估报告输出
-├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
-├── .env.example
+├── bootstrap/              # Spring Boot 启动模块
+├── framework/              # Agent、RAG 核心框架
+├── infra-ai/               # LLM、Embedding、VectorStore 等 AI 基础设施
+├── mcp-server/             # MCP 工具服务
+├── ingestion/              # 文档解析、清洗与知识入库
+├── retrieval/              # 多路召回、RRF 融合与 Reranker
+├── evaluation/             # RAGAS 评测与错误样本分析
+├── finetune/               # Embedding 领域微调
+├── docs/                   # 风电设备知识与项目文档
 └── README.md
 ```
+
+## 优化方向
+
+* 基于风电设备型号、部件名称和故障描述持续扩充领域训练数据。
+* 利用错召回 Case 自动构造 Hard Negative，迭代优化 Embedding 检索能力。
+* 结合 RAGAS 与人工标注数据持续评估 Faithfulness、Answer Relevancy、Context Precision 和 Context Recall。
+* 探索历史故障案例与实时设备数据结合，实现更智能的风机故障辅助诊断。
